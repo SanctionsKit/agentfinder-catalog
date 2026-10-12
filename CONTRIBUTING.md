@@ -66,8 +66,10 @@ Create a file at `catalog/<your-publisher>/<augment-name>.json` with the followi
 #### Canvas-only plugins
 
 Catalog entries for plugins whose functionality consists entirely of a GitHub Copilot
-canvas keep the `application/vnd.github.copilot-plugin` media type and must include all
-of these tags:
+canvas use the media type that matches their manifest layout and must include all of
+these tags. Use `application/vnd.anthropic.claude-plugin+json` when `metadata.repoPath`
+is a `.claude-plugin/plugin.json` manifest, and `application/vnd.github.copilot-plugin`
+for other Copilot plugin manifests.
 
 ```json
 "tags": [

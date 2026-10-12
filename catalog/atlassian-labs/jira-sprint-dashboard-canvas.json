@@ -1,7 +1,7 @@
 {
   "identifier": "urn:ai:github.com:atlassian-labs:copilot-marketplace:jira-sprint-dashboard-canvas",
   "displayName": "Jira Sprint Dashboard Canvas",
-  "mediaType": "application/vnd.github.copilot-plugin",
+  "mediaType": "application/vnd.anthropic.claude-plugin+json",
   "url": "https://github.com/atlassian-labs/copilot-marketplace/blob/main/.claude-plugin/plugin.json",
   "description": "View a live, read-only dashboard of Jira issues in currently open sprints from a GitHub Copilot canvas.",
   "tags": [

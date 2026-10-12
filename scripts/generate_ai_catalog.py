@@ -18,6 +18,8 @@ MCP_CATALOG = "https://api.mcp.github.com/.well-known/ai-catalog.json"
 MCP_REGISTRY = "https://api.mcp.github.com/v0.1/servers"
 MCP_REGISTRY_PAGE_SIZE = 100
 CANVAS_PLUGIN_MEDIA_TYPE = "application/vnd.github.copilot-plugin"
+CLAUDE_PLUGIN_MEDIA_TYPE = "application/vnd.anthropic.claude-plugin+json"
+CLAUDE_PLUGIN_MANIFEST_PATH = ".claude-plugin/plugin.json"
 CANVAS_ONLY_REQUIRED_TAGS = frozenset(("canvas", "canvas-only", "github-copilot"))
 NON_CANVAS_PLUGIN_TAGS = frozenset(("agent", "hook", "mcp-server", "skill"))
 SOURCE_SET_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
@@ -40,6 +42,17 @@ def validate_canvas_only_tags(tags, source):
             f"{source}: canvas-only entry cannot include non-Canvas capability tags "
             f"{', '.join(sorted(conflicting_tags))}"
         )
+
+
+def canvas_only_media_type(entry):
+    metadata = entry.get("metadata")
+    repo_path = metadata.get("repoPath") if isinstance(metadata, dict) else None
+    if isinstance(repo_path, str) and (
+        repo_path == CLAUDE_PLUGIN_MANIFEST_PATH
+        or repo_path.endswith(f"/{CLAUDE_PLUGIN_MANIFEST_PATH}")
+    ):
+        return CLAUDE_PLUGIN_MEDIA_TYPE
+    return CANVAS_PLUGIN_MEDIA_TYPE
 
 
 def validate_repository_metadata(metadata, source):
@@ -161,17 +174,12 @@ def validate(entry, source):
         validate_canvas_only_tags(tags, source)
         if not has_url:
             fail(f"{source}: canvas-only entries must use a GitHub descriptor url")
-        if entry.get("mediaType") != CANVAS_PLUGIN_MEDIA_TYPE:
-            fail(
-                f"{source}: canvas-only entries must use mediaType "
-                f"{CANVAS_PLUGIN_MEDIA_TYPE}"
-            )
+        media_type = canvas_only_media_type(entry)
+        if entry.get("mediaType") != media_type:
+            fail(f"{source}: canvas-only entries must use mediaType {media_type}")
         entry_type = entry.get("type")
-        if entry_type is not None and entry_type != CANVAS_PLUGIN_MEDIA_TYPE:
-            fail(
-                f"{source}: canvas-only entry type must match mediaType "
-                f"{CANVAS_PLUGIN_MEDIA_TYPE}"
-            )
+        if entry_type is not None and entry_type != media_type:
+            fail(f"{source}: canvas-only entry type must match mediaType {media_type}")
 
     validate_repository_metadata(entry.get("metadata"), source)
     if isinstance(tags, list) and "canvas-only" in tags:

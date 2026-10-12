@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -126,6 +127,38 @@ class ValidateEntryTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "type must match mediaType"):
             generate_ai_catalog.validate(
                 self.canvas_entry() | {"type": "application/ai-skill"},
+                "test",
+            )
+
+    def test_claude_layout_canvas_only_entry_requires_claude_plugin_media_type(self):
+        claude_layout = {
+            "url": (
+                "https://github.com/owner/repository/blob/main/"
+                ".claude-plugin/plugin.json"
+            ),
+            "metadata": {
+                "sourceSet": "owner/repository",
+                "repoPath": ".claude-plugin/plugin.json",
+            },
+        }
+        entry = self.canvas_entry() | claude_layout
+        with self.assertRaisesRegex(
+            SystemExit,
+            f"must use mediaType {re.escape(generate_ai_catalog.CLAUDE_PLUGIN_MEDIA_TYPE)}",
+        ):
+            generate_ai_catalog.validate(entry, "test")
+
+        generate_ai_catalog.validate(
+            entry | {"mediaType": generate_ai_catalog.CLAUDE_PLUGIN_MEDIA_TYPE},
+            "test",
+        )
+        with self.assertRaisesRegex(SystemExit, "type must match mediaType"):
+            generate_ai_catalog.validate(
+                entry
+                | {
+                    "mediaType": generate_ai_catalog.CLAUDE_PLUGIN_MEDIA_TYPE,
+                    "type": generate_ai_catalog.CANVAS_PLUGIN_MEDIA_TYPE,
+                },
                 "test",
             )
 
