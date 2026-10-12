@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.microsoft/powerbi-modeling-mcp",
+  "title": "Power BI Authoring MCP Server",
+  "description": "Author Power BI semantic models and run DAX queries in Desktop, Fabric, and local PBIP/TMDL files.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/microsoft/powerbi-modeling-mcp",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/microsoft/powerbi-modeling-mcp#readme",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@microsoft/powerbi-modeling-mcp",
+      "version": "1.0.0",
+      "runtimeHint": "npx",
+      "runtimeArguments": [
+        {
+          "type": "positional",
+          "value": "-y"
+        }
+      ],
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "--start"
+        }
+      ]
+    }
+  ]
+}
