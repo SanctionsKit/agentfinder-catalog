@@ -4,10 +4,14 @@ on:
   pull_request:
     paths:
       - "catalog/*/*.json"
+      - "catalog-icons.json"
+      - "icons/**"
       - "ai-catalog.json"
       - "scripts/generate_ai_catalog.py"
       - "tests/*.py"
       - ".github/workflows/catalog.yml"
+      - "CONTRIBUTING.md"
+      - "README.md"
   push:
     branches:
       - main

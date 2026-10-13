@@ -19,6 +19,8 @@ class CatalogWorkflowTest(unittest.TestCase):
         self.assertIn("  workflow_dispatch:\n", WORKFLOW)
         self.assertIn("  push:\n    branches:\n      - main\n", WORKFLOW)
         self.assertIn("  pull_request:\n    paths:\n", WORKFLOW)
+        for path in ("catalog-icons.json", "icons/**", "CONTRIBUTING.md", "README.md"):
+            self.assertIn(f'      - "{path}"\n', WORKFLOW)
         self.assertIn(
             "        if: (github.event_name == 'push' || "
             "github.event_name == 'schedule' || "

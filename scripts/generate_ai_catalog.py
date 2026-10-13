@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 import json
 import re
+import struct
+import zlib
 from pathlib import Path, PurePosixPath
 from urllib.error import URLError
 from urllib.parse import unquote, urlencode, urlparse
@@ -23,6 +26,265 @@ CLAUDE_PLUGIN_MANIFEST_PATH = ".claude-plugin/plugin.json"
 CANVAS_ONLY_REQUIRED_TAGS = frozenset(("canvas", "canvas-only", "github-copilot"))
 NON_CANVAS_PLUGIN_TAGS = frozenset(("agent", "hook", "mcp-server", "skill"))
 SOURCE_SET_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+ICON_METADATA_KEY = "com.github.agentfinder.icon.url"
+ICON_OVERLAY = "catalog-icons.json"
+MAX_ICON_BYTES = 256 * 1024
+MAX_ICON_DIMENSION = 512
+ICON_PATH_PATTERN = re.compile(
+    r"/github/agentfinder-catalog/[0-9a-f]{40}/"
+    r"(icons/[A-Za-z0-9_-][A-Za-z0-9_.-]*/[A-Za-z0-9_-][A-Za-z0-9_.-]*\.png)"
+)
+
+
+def validate_png(content, source):
+    def invalid(reason):
+        fail(f"{source}: invalid PNG: {reason}")
+
+    if not content.startswith(b"\x89PNG\r\n\x1a\n"):
+        invalid("missing signature")
+    offset = 8
+    header = None
+    palette = None
+    compressed = bytearray()
+    saw_data = False
+    ended_data = False
+    while offset < len(content):
+        if len(content) - offset < 12:
+            invalid("truncated chunk")
+        length, kind = struct.unpack_from(">I4s", content, offset)
+        end = offset + 12 + length
+        if end > len(content):
+            invalid("truncated chunk")
+        payload = content[offset + 8 : end - 4]
+        checksum = struct.unpack_from(">I", content, end - 4)[0]
+        if zlib.crc32(kind + payload) != checksum:
+            invalid("chunk checksum mismatch")
+        if not re.fullmatch(b"[A-Za-z]{4}", kind) or not 65 <= kind[2] <= 90:
+            invalid("invalid chunk type")
+        if header is None and kind != b"IHDR":
+            invalid("IHDR must be first")
+        if kind == b"IHDR":
+            if header is not None or length != 13:
+                invalid("invalid or duplicate IHDR")
+            header = struct.unpack(">IIBBBBB", payload)
+            width, height, depth, color, compression, filtering, interlace = header
+            if not (
+                1 <= width <= MAX_ICON_DIMENSION
+                and 1 <= height <= MAX_ICON_DIMENSION
+            ):
+                invalid(f"dimensions must be between 1 and {MAX_ICON_DIMENSION}")
+            depths = {
+                0: (1, 2, 4, 8, 16), 2: (8, 16), 3: (1, 2, 4, 8),
+                4: (8, 16), 6: (8, 16),
+            }
+            if (
+                depth not in depths.get(color, ())
+                or compression != 0
+                or filtering != 0
+                or interlace not in (0, 1)
+            ):
+                invalid("unsupported IHDR fields")
+        elif kind == b"PLTE":
+            if (
+                palette is not None or saw_data or not length or length % 3
+                or length > 768 or header[3] in (0, 4)
+                or (header[3] == 3 and length // 3 > 2 ** header[2])
+            ):
+                invalid("invalid palette")
+            palette = payload
+        elif kind == b"IDAT":
+            if ended_data or (header[3] == 3 and palette is None):
+                invalid("invalid IDAT order or missing palette")
+            saw_data = True
+            compressed.extend(payload)
+        elif kind == b"IEND":
+            if length or not saw_data or end != len(content):
+                invalid("invalid IEND or trailing bytes")
+            break
+        elif not kind[0] & 32:
+            invalid("unknown critical chunk")
+        elif kind in (b"acTL", b"fcTL", b"fdAT"):
+            invalid("animated PNGs are not supported")
+        if saw_data and kind != b"IDAT":
+            ended_data = True
+        offset = end
+    else:
+        invalid("missing IEND")
+
+    width, height, depth, color, _, _, interlace = header
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[color]
+    passes = (
+        ((0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4),
+         (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2))
+        if interlace else ((0, 0, 1, 1),)
+    )
+    rows = []
+    for x, y, dx, dy in passes:
+        columns = max(0, (width - x + dx - 1) // dx)
+        count = max(0, (height - y + dy - 1) // dy)
+        if columns and count:
+            rows.extend([1 + (columns * channels * depth + 7) // 8] * count)
+    expected = sum(rows)
+    try:
+        decoder = zlib.decompressobj()
+        pixels = decoder.decompress(compressed, expected + 1)
+    except zlib.error as error:
+        invalid(f"invalid compressed image data: {error}")
+    if (
+        len(pixels) != expected or not decoder.eof
+        or decoder.unused_data or decoder.unconsumed_tail
+    ):
+        invalid("compressed image data does not match dimensions")
+    offset = 0
+    for length in rows:
+        if pixels[offset] > 4:
+            invalid("invalid scanline filter")
+        offset += length
+
+
+def validate_icon_url(value, source):
+    if not isinstance(value, str):
+        fail(f"{source}: url must be a string")
+    try:
+        url = urlparse(value)
+        url.port
+    except ValueError:
+        fail(f"{source}: url must be a valid commit-pinned raw GitHub URL")
+    match = ICON_PATH_PATTERN.fullmatch(url.path)
+    if (
+        url.scheme != "https" or url.netloc != "raw.githubusercontent.com"
+        or url.query or url.fragment or "?" in value or "#" in value
+        or not match or value != url.geturl()
+    ):
+        fail(
+            f"{source}: url must be an HTTPS raw.githubusercontent.com URL for "
+            "github/agentfinder-catalog/<40-hex-commit>/icons/<publisher>/<asset>.png"
+        )
+    return Path(match[1])
+
+
+def validate_provenance_url(value, source):
+    if not isinstance(value, str) or any(character.isspace() for character in value):
+        fail(f"{source}: must be a public absolute HTTPS URL")
+    try:
+        url = urlparse(value)
+        hostname = url.hostname
+        port = url.port
+    except ValueError:
+        fail(f"{source}: must be a valid public absolute HTTPS URL")
+    if (
+        url.scheme != "https" or not hostname or "\\" in value
+        or url.username is not None or url.password is not None or port is not None
+    ):
+        fail(f"{source}: must be a public absolute HTTPS URL without credentials or ports")
+
+
+def validate_icon_asset(declaration, source):
+    relative = validate_icon_url(declaration.get("url"), source)
+    provenance = declaration.get("provenance")
+    if (
+        not isinstance(provenance, dict)
+        or set(provenance) != {"sourceUrl", "license", "permissionUrl", "sha256"}
+    ):
+        fail(f"{source}: provenance must contain sourceUrl, license, permissionUrl, sha256")
+    for field in ("sourceUrl", "permissionUrl"):
+        validate_provenance_url(provenance[field], f"{source}: provenance.{field}")
+    license_name = provenance["license"]
+    if not isinstance(license_name, str) or not license_name.strip():
+        fail(f"{source}: provenance.license must be a non-empty license or permission label")
+    digest = provenance["sha256"]
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        fail(f"{source}: provenance.sha256 must be a lowercase SHA-256 hex digest")
+    path = ROOT / relative
+    try:
+        if any(
+            (ROOT / Path(*relative.parts[:index])).is_symlink()
+            for index in range(1, len(relative.parts) + 1)
+        ):
+            fail(f"{source}: asset path must not contain symlinks")
+        if not path.resolve().is_relative_to((ROOT / "icons").resolve()):
+            fail(f"{source}: asset must stay within icons/")
+        with path.open("rb") as asset:
+            content = asset.read(MAX_ICON_BYTES + 1)
+    except OSError as error:
+        fail(f"{source}: cannot read asset {relative}: {error}")
+    if len(content) > MAX_ICON_BYTES:
+        fail(f"{source}: asset exceeds {MAX_ICON_BYTES} bytes")
+    if hashlib.sha256(content).hexdigest() != digest:
+        fail(f"{source}: asset SHA-256 does not match provenance.sha256")
+    validate_png(content, source)
+
+
+def load_icon_declarations():
+    path = ROOT / ICON_OVERLAY
+    if path.is_symlink():
+        fail(f"{ICON_OVERLAY}: overlay must not be a symlink")
+    if not path.exists():
+        return []
+
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                fail(f"{ICON_OVERLAY}: duplicate JSON key {key}")
+            result[key] = value
+        return result
+
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        fail(f"{ICON_OVERLAY}: cannot load JSON: {error}")
+    if (
+        not isinstance(document, dict) or set(document) != {"icons"}
+        or not isinstance(document["icons"], list)
+    ):
+        fail(f"{ICON_OVERLAY}: expected an object containing only an icons array")
+    seen = {}
+    for index, declaration in enumerate(document["icons"]):
+        source = f"{ICON_OVERLAY} icons[{index}]"
+        if (
+            not isinstance(declaration, dict)
+            or not {"identifier", "url", "provenance"}.issubset(declaration)
+            or set(declaration) - {"identifier", "version", "url", "provenance"}
+        ):
+            fail(f"{source}: expected identifier, optional version, url, and provenance")
+        identifier = declaration["identifier"]
+        if not isinstance(identifier, str) or not re.fullmatch(
+            r"urn:air:[A-Za-z0-9.-]+(?::[A-Za-z0-9._-]+)+", identifier
+        ):
+            fail(f"{source}: identifier must be an exact generated urn:air: identity")
+        version = declaration.get("version")
+        if "version" in declaration and (
+            not isinstance(version, str) or not version.strip()
+        ):
+            fail(f"{source}: version must be a non-empty string when supplied")
+        versions = seen.setdefault(identifier, set())
+        if version in versions or (versions and (version is None or None in versions)):
+            fail(f"{source}: overlapping icon declarations for {identifier}")
+        versions.add(version)
+        validate_icon_asset(declaration, source)
+    return document["icons"]
+
+
+def apply_icon_declarations(entries, declarations):
+    by_identifier = {}
+    for entry in entries:
+        by_identifier.setdefault(entry["identifier"], []).append(entry)
+    for index, declaration in enumerate(declarations):
+        matches = [
+            entry for entry in by_identifier.get(declaration["identifier"], ())
+            if "version" not in declaration or entry.get("version") == declaration["version"]
+        ]
+        if not matches:
+            fail(
+                f"{ICON_OVERLAY} icons[{index}]: unmatched icon declaration for "
+                f"{declaration['identifier']} {declaration.get('version', '(all versions)')}"
+            )
+        for entry in matches:
+            entry["metadata"] = {
+                **(entry.get("metadata") or {}),
+                ICON_METADATA_KEY: declaration["url"],
+            }
 
 
 def fail(message):
@@ -60,6 +322,8 @@ def validate_repository_metadata(metadata, source):
         return
     if not isinstance(metadata, dict):
         fail(f"{source}: metadata must be an object")
+    if ICON_METADATA_KEY in metadata:
+        fail(f"{source}: {ICON_METADATA_KEY} must be declared through {ICON_OVERLAY}")
 
     source_set = metadata.get("sourceSet")
     repo_path = metadata.get("repoPath")
@@ -257,6 +521,7 @@ def display_name(entry, registry_record=None):
 
 
 def generate():
+    icon_declarations = load_icon_declarations()
     entries = []
     identities = set()
     local_identifiers = set()
@@ -307,6 +572,8 @@ def generate():
             if name:
                 generated["displayName"] = name
             add(generated, source)
+
+    apply_icon_declarations(entries, icon_declarations)
 
     if len(entries) > MAX_ENTRIES:
         fail(f"catalog has {len(entries)} entries; limit is {MAX_ENTRIES}")
