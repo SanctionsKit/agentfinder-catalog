@@ -33,21 +33,24 @@ The Catalog workflow checks the [GitHub MCP Registry](https://api.mcp.github.com
 ## Optional reviewed icons
 
 `catalog-icons.json` is an identity-keyed overlay for both local and
-registry-imported resources. It starts empty; enabling tooling does not publish
-production artwork. Declarations use the existing generated `urn:air:` identifier
+registry-imported resources. It includes explicitly approved featured artwork,
+including standalone skill icons. Declarations use the existing generated `urn:air:` identifier
 and optional exact version, without duplicating resources or changing descriptor
 URLs. Generation adds only the scalar `metadata["com.github.agentfinder.icon.url"]`;
 source provenance stays in the overlay.
 
-Reviewed assets belong under `icons/<publisher>/<asset>.png`, with verified
-redistribution permission, a matching SHA-256, and immutable commit-pinned HTTPS
+Reviewed assets belong under `icons/<publisher>/<asset>.png`, with recorded
+redistribution permission or an explicit approval attestation, a matching SHA-256,
+and immutable commit-pinned HTTPS
 `raw.githubusercontent.com` URLs. Initial validation permits static PNG files up
 to 256 KiB and 512 by 512 pixels. See
 [the icon contribution guide](CONTRIBUTING.md#reviewed-resource-icons) for exact
 fixtures, validation, and addition/replacement/removal instructions. Icons imply
 neither endorsement nor official-product ownership.
 
-Production publication is separate and follows deployed
+The artwork is copied or rasterized from the approved app assets; `github-app`
+remains private, while only the selected image bytes are hosted publicly here.
+Production rollout of these declarations follows deployed
 [github/agentfinder#557](https://github.com/github/agentfinder/pull/557) and
 [github/copilot-ecosystem#1625](https://github.com/github/copilot-ecosystem/issues/1625)
 service support. Clients continue using optional `metadata.github.icon.url` and

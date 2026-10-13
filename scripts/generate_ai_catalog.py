@@ -182,16 +182,25 @@ def validate_provenance_url(value, source):
 def validate_icon_asset(declaration, source):
     relative = validate_icon_url(declaration.get("url"), source)
     provenance = declaration.get("provenance")
+    licensed_fields = {"sourceUrl", "license", "permissionUrl", "sha256"}
+    approval_fields = {"sourceUrl", "approval", "sha256"}
     if (
         not isinstance(provenance, dict)
-        or set(provenance) != {"sourceUrl", "license", "permissionUrl", "sha256"}
+        or set(provenance) not in (licensed_fields, approval_fields)
     ):
-        fail(f"{source}: provenance must contain sourceUrl, license, permissionUrl, sha256")
-    for field in ("sourceUrl", "permissionUrl"):
-        validate_provenance_url(provenance[field], f"{source}: provenance.{field}")
-    license_name = provenance["license"]
-    if not isinstance(license_name, str) or not license_name.strip():
-        fail(f"{source}: provenance.license must be a non-empty license or permission label")
+        fail(
+            f"{source}: provenance must contain sourceUrl and sha256, plus either "
+            "license and permissionUrl, or an explicit approval attestation"
+        )
+    validate_provenance_url(provenance["sourceUrl"], f"{source}: provenance.sourceUrl")
+    if "approval" in provenance:
+        if not isinstance(provenance["approval"], str) or not provenance["approval"].strip():
+            fail(f"{source}: provenance.approval must be a non-empty redistribution attestation")
+    else:
+        validate_provenance_url(provenance["permissionUrl"], f"{source}: provenance.permissionUrl")
+        license_name = provenance["license"]
+        if not isinstance(license_name, str) or not license_name.strip():
+            fail(f"{source}: provenance.license must be a non-empty license or permission label")
     digest = provenance["sha256"]
     if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
         fail(f"{source}: provenance.sha256 must be a lowercase SHA-256 hex digest")

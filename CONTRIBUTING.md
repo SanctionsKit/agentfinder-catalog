@@ -90,9 +90,10 @@ descriptor or create another resource entry to attach an icon. Use the exact
 generated `urn:air:` identifier from `ai-catalog.json`, not the source `urn:ai:`
 identifier, a display name, or a descriptor URL.
 
-The initial overlay is empty: tooling support is separate from production
-artwork publication. The following is a **synthetic example**, not an available
-asset, real digest, or evidence of permission:
+The overlay includes approved artwork reused from the featured app resources.
+Asset hosting remains public here; the source app repository remains private.
+The following is a **synthetic example**, not an available asset, real digest,
+or evidence of permission:
 
 ```json
 {
@@ -170,7 +171,11 @@ or an image cannot be loaded.
 - Supply `sourceUrl` identifying the original artwork, `license` identifying its
   license or explicit permission, `permissionUrl` pointing to reviewable evidence
   that redistribution of these bytes is permitted, and a lowercase `sha256` of
-  the actual file. Source and permission URLs must be absolute HTTPS without
+  the actual file. Alternatively, when approval is given without a URL, supply
+  `sourceUrl`, `sha256`, and a nonempty `approval` attestation describing the
+  explicit authorization for public redistribution; do not invent a license or
+  permission link. These two provenance forms are mutually exclusive.
+  Source and permission URLs must be absolute HTTPS without
   credentials or ports. Generator checks establish syntax and a matching local
   digest, **not legal permission, public availability, or ownership**. Reviewers
   must verify the evidence and any attribution or notice requirements.
@@ -218,6 +223,16 @@ resources unchanged. **Production declaration publication must follow deployed
 github/agentfinder#557 foundation and github/copilot-ecosystem#1625 service
 support**, plus verified redistribution permission. Catalog tooling alone is
 not end-to-end icon delivery.
+
+The current featured declarations include the explicitly approved icon assets
+and, where no icon is supplied, the Figma, Impeccable, and Microsoft Foundry cover
+images. SVG sources were rasterized to PNG and images resized without cropping
+to satisfy the limits. The same Azure DevOps artwork serves its MCP and canvas
+resources; the Grill Me artwork serves the two skill names in its featured
+installation bundle. Power BI remains without a declaration because the featured
+list supplies no artwork. No app code or repository visibility changes are needed.
+Source links identify the supplied pinned app asset and may require repository
+access; they are provenance references, not client image delivery URLs.
 
 The current ARD specification is
 [v0.91 (Proposal)](https://github.com/ards-project/ard-spec/blob/49eb4df6f3841ccecc5c31d5175117337b568bdf/spec/ard.md);

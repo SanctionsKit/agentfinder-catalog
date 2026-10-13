@@ -270,6 +270,25 @@ class CatalogIconsTest(unittest.TestCase):
         with self.assertRaisesRegex(SystemExit, "cannot read asset"):
             self.generate()
 
+    def test_explicit_redistribution_approval_without_fabricated_license(self):
+        provenance = self.declaration()["provenance"]
+        provenance.pop("license")
+        provenance.pop("permissionUrl")
+        provenance["approval"] = "Selected artwork approved for public redistribution."
+        self.write_overlay(self.declaration(provenance=provenance))
+        rendered, _ = self.generate()
+        self.assertNotIn(b"approval", rendered)
+        for invalid in (
+            provenance | {"approval": ""},
+            provenance | {"approval": None},
+            provenance | {"license": "invented"},
+            {key: value for key, value in provenance.items() if key != "approval"},
+        ):
+            with self.subTest(provenance=invalid):
+                self.write_overlay(self.declaration(provenance=invalid))
+                with self.assertRaisesRegex(SystemExit, "provenance"):
+                    self.generate()
+
     def test_symlink_asset_and_overlay_rejected(self):
         link = self.asset.with_name("link.png")
         link.symlink_to(self.asset)
@@ -853,6 +872,9 @@ class ValidateEntryTest(unittest.TestCase):
                 }
                 with (
                     patch.object(
+                        generate_ai_catalog, "load_icon_declarations", return_value=[]
+                    ),
+                    patch.object(
                         generate_ai_catalog, "load_mcp_entries", return_value=[remote]
                     ),
                     patch.object(
@@ -879,6 +901,33 @@ class ValidateEntryTest(unittest.TestCase):
                         }
                     ],
                 )
+
+    def test_featured_declarations_match_shipped_catalog_and_assets(self):
+        declarations = generate_ai_catalog.load_icon_declarations()
+        self.assertEqual(len(declarations), 14)
+        document = json.loads(generate_ai_catalog.OUTPUT.read_bytes())
+        entries = document["entries"]
+        baseline = json.loads(json.dumps(entries))
+        key = generate_ai_catalog.ICON_METADATA_KEY
+        for entry in baseline:
+            if isinstance(entry.get("metadata"), dict):
+                entry["metadata"].pop(key, None)
+        generate_ai_catalog.apply_icon_declarations(baseline, declarations)
+        self.assertEqual(baseline, entries)
+        decorated = {entry["identifier"]: entry for entry in entries if key in entry.get("metadata", {})}
+        self.assertEqual(set(decorated), {item["identifier"] for item in declarations})
+        self.assertEqual(
+            decorated["urn:air:github.com:vercel-labs:agent-skills:web-design-guidelines"]["type"],
+            "application/ai-skill",
+        )
+        self.assertEqual(
+            decorated["urn:air:github.com:mattpocock:skills:grill-me"]["type"],
+            "application/ai-skill",
+        )
+        self.assertNotIn(
+            "urn:air:registry.modelcontextprotocol.io:com.microsoft:powerbi-modeling-mcp",
+            decorated,
+        )
 
     def test_generated_canvas_only_filter_shape(self):
         with tempfile.TemporaryDirectory() as directory:
