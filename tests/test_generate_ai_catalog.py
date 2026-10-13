@@ -904,7 +904,7 @@ class ValidateEntryTest(unittest.TestCase):
 
     def test_featured_declarations_match_shipped_catalog_and_assets(self):
         declarations = generate_ai_catalog.load_icon_declarations()
-        self.assertEqual(len(declarations), 14)
+        self.assertEqual(len(declarations), 13)
         document = json.loads(generate_ai_catalog.OUTPUT.read_bytes())
         entries = document["entries"]
         baseline = json.loads(json.dumps(entries))
@@ -916,9 +916,9 @@ class ValidateEntryTest(unittest.TestCase):
         self.assertEqual(baseline, entries)
         decorated = {entry["identifier"]: entry for entry in entries if key in entry.get("metadata", {})}
         self.assertEqual(set(decorated), {item["identifier"] for item in declarations})
-        self.assertEqual(
-            decorated["urn:air:github.com:vercel-labs:agent-skills:web-design-guidelines"]["type"],
-            "application/ai-skill",
+        self.assertNotIn(
+            "urn:air:github.com:vercel-labs:agent-skills:web-design-guidelines",
+            decorated,
         )
         self.assertEqual(
             decorated["urn:air:github.com:mattpocock:skills:grill-me"]["type"],

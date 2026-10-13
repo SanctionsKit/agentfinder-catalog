@@ -233,6 +233,8 @@ installation bundle. Power BI remains without a declaration because the featured
 list supplies no artwork. No app code or repository visibility changes are needed.
 Source links identify the supplied pinned app asset and may require repository
 access; they are provenance references, not client image delivery URLs.
+The Web Design Guidelines artwork is included, but its declaration is deferred
+until the separately proposed skill entry is available in the catalog.
 
 The current ARD specification is
 [v0.91 (Proposal)](https://github.com/ards-project/ard-spec/blob/49eb4df6f3841ccecc5c31d5175117337b568bdf/spec/ard.md);

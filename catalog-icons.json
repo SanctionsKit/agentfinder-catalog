@@ -91,15 +91,6 @@
       }
     },
     {
-      "identifier": "urn:air:github.com:vercel-labs:agent-skills:web-design-guidelines",
-      "url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/vercel-labs/web-design-guidelines.png",
-      "provenance": {
-        "sourceUrl": "https://github.com/github/github-app/blob/4a3a9cb2d0d857fbf97851ff1bfc640e0a628366/public/featured-assets/web-design-guidelines-icon.png",
-        "approval": "Public redistribution of the selected featured app artwork was explicitly approved by the contributing maintainer. SVG rasterization and resizing without cropping were approved; no third-party license is asserted.",
-        "sha256": "1454e226600f10289387ef4ce3cd02dcf9ce83b449d5fa3548448e234ee4b276"
-      }
-    },
-    {
       "identifier": "urn:air:registry.modelcontextprotocol.io:com.figma.mcp:mcp",
       "url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/figma/figma.png",
       "provenance": {

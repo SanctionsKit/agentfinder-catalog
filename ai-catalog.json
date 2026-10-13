@@ -22484,24 +22484,6 @@
       "type": "application/ai-skill"
     },
     {
-      "identifier": "urn:air:github.com:vercel-labs:agent-skills:web-design-guidelines",
-      "displayName": "Web Design Guidelines",
-      "mediaType": "application/ai-skill",
-      "url": "https://github.com/vercel-labs/agent-skills/blob/main/skills/web-design-guidelines/SKILL.md",
-      "description": "Review web interfaces for usability, accessibility, and design guidelines compliance.",
-      "tags": [
-        "skill",
-        "design",
-        "accessibility"
-      ],
-      "metadata": {
-        "sourceSet": "vercel-labs/agent-skills",
-        "repoPath": "skills/web-design-guidelines/SKILL.md",
-        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/vercel-labs/web-design-guidelines.png"
-      },
-      "type": "application/ai-skill"
-    },
-    {
       "identifier": "urn:air:github.com:webflow:webflow-skills:webflow-skills",
       "displayName": "Webflow Skills",
       "mediaType": "application/vnd.anthropic.claude-plugin+json",
