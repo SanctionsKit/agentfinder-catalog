@@ -461,6 +461,55 @@ class ValidateEntryTest(unittest.TestCase):
         self.assertEqual(remote["new"]["url"], added["url"])
         self.assertNotIn(old["url"], [entry["url"] for entry in entries])
 
+    def test_power_bi_uses_only_registry_entry_across_version_updates(self):
+        for version in ("1.0.0", "2.0.0"):
+            with self.subTest(version=version):
+                remote = {
+                    "identifier": (
+                        "urn:ai:registry.modelcontextprotocol.io:"
+                        "com.microsoft:powerbi-modeling-mcp"
+                    ),
+                    "displayName": "Power BI Authoring MCP Server (Local)",
+                    "type": "application/mcp-server+json",
+                    "url": (
+                        "https://api.mcp.github.com/v0.1/servers/"
+                        f"com.microsoft%2Fpowerbi-modeling-mcp/versions/{version}"
+                    ),
+                    "version": version,
+                    "metadata": {
+                        "repository": "https://github.com/microsoft/powerbi-modeling-mcp.git",
+                        "repositorySource": "github",
+                    },
+                }
+                with (
+                    patch.object(
+                        generate_ai_catalog, "load_mcp_entries", return_value=[remote]
+                    ),
+                    patch.object(
+                        generate_ai_catalog, "load_mcp_registry_records", return_value=[]
+                    ),
+                ):
+                    rendered, _ = generate_ai_catalog.generate()
+
+                power_bi_entries = [
+                    entry
+                    for entry in json.loads(rendered)["entries"]
+                    if entry["type"] == "application/mcp-server+json"
+                    and "powerbi-modeling-mcp" in entry["identifier"]
+                ]
+                self.assertEqual(
+                    power_bi_entries,
+                    [
+                        remote
+                        | {
+                            "identifier": (
+                                "urn:air:registry.modelcontextprotocol.io:"
+                                "com.microsoft:powerbi-modeling-mcp"
+                            )
+                        }
+                    ],
+                )
+
     def test_generated_canvas_only_filter_shape(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

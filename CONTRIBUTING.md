@@ -1,5 +1,7 @@
 # Contributing to the Agentfinder Catalog
 
+__Last Updated:__ 2026-10-13
+
 Want to list your augment (skill or MCP server) in the catalog? Open a pull request following the steps below. Contributions to this project are released to the public under the project's open source license.
 
 ## Catalog Structure
@@ -60,8 +62,25 @@ Create a file at `catalog/<your-publisher>/<augment-name>.json` with the followi
 | `url` | ✅ | URL to the augment's definition file (e.g., SKILL.md) |
 | `description` | ✅ | A brief description of the augment's purpose |
 | `tags` | ❌ | Tags used to categorize and filter the augment |
-| `metadata.sourceSet` | ✅ | The source repository name |
-| `metadata.repoPath` | ✅ | Path to the definition file within the repository |
+| `metadata.sourceSet` | For GitHub-file references | The source repository name; omit for registry references |
+| `metadata.repoPath` | For GitHub-file references | Path to the definition file within the repository; omit for registry references |
+
+#### MCP registry entries
+
+Before adding an MCP server, check whether it is already imported into `ai-catalog.json`
+from the [GitHub MCP Registry](https://api.mcp.github.com/.well-known/ai-catalog.json).
+Prefer that existing registry entry over a second contributor-managed entry for the same
+server. Keeping the registry-supplied identifier avoids duplicate search resources and
+lets the hourly refresh pick up new version references without a local entry shadowing them.
+
+Agent Finder's current enrichment path for catalog MCP references accepts versioned
+`https://api.mcp.github.com/v0.1/servers/<encoded-server-name>/versions/<version>` URLs.
+Use the URL and matching version supplied by the registry. Raw GitHub descriptor URLs
+are not supported by that reference resolver, even when they contain a valid MCP descriptor.
+Do not create a copied descriptor to represent a server that is already imported from the registry.
+
+Registry references do not identify a file in this repository. Do not attach
+`metadata.sourceSet` or `metadata.repoPath` pointing to a copied descriptor.
 
 #### Canvas-only plugins
 
