@@ -4,10 +4,15 @@ on:
   pull_request:
     paths:
       - "catalog/*/*.json"
+      - "catalog-icons.json"
+      - "icons/**"
       - "ai-catalog.json"
       - "scripts/generate_ai_catalog.py"
+      - "requirements.txt"
       - "tests/*.py"
       - ".github/workflows/catalog.yml"
+      - "CONTRIBUTING.md"
+      - "README.md"
   push:
     branches:
       - main
@@ -32,6 +37,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           ref: ${{ github.event.pull_request.head.ref || github.ref }}
+      - run: python3 -m pip install -r requirements.txt
       - run: python3 -m unittest discover -s tests
       - run: python3 scripts/generate_ai_catalog.py
       - name: Update pull request

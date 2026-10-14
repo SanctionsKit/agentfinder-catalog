@@ -2129,7 +2129,8 @@
       ],
       "metadata": {
         "sourceSet": "atlassian-labs/copilot-marketplace",
-        "repoPath": ".claude-plugin/plugin.json"
+        "repoPath": ".claude-plugin/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/atlassian-labs/jira.png"
       },
       "type": "application/vnd.anthropic.claude-plugin+json"
     },
@@ -10817,7 +10818,8 @@
       ],
       "metadata": {
         "sourceSet": "github/awesome-copilot",
-        "repoPath": "plugins/security-best-practices/plugin.json"
+        "repoPath": "plugins/security-best-practices/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/github/security-best-practices.png"
       },
       "type": "application/vnd.github.copilot-plugin"
     },
@@ -10858,7 +10860,8 @@
       ],
       "metadata": {
         "sourceSet": "github/awesome-copilot",
-        "repoPath": "plugins/sentry-triage/plugin.json"
+        "repoPath": "plugins/sentry-triage/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/sentry/sentry-triage.png"
       },
       "type": "application/vnd.github.copilot-plugin"
     },
@@ -15429,7 +15432,8 @@
       "description": "A relentless interview to sharpen a plan or design.",
       "metadata": {
         "sourceSet": "mattpocock/skills",
-        "repoPath": "skills/productivity/grill-me/SKILL.md"
+        "repoPath": "skills/productivity/grill-me/SKILL.md",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/mattpocock/grill-me.png"
       },
       "type": "application/ai-skill"
     },
@@ -15453,7 +15457,8 @@
       "description": "Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.",
       "metadata": {
         "sourceSet": "mattpocock/skills",
-        "repoPath": "skills/productivity/grilling/SKILL.md"
+        "repoPath": "skills/productivity/grilling/SKILL.md",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/mattpocock/grill-me.png"
       },
       "type": "application/ai-skill"
     },
@@ -16622,7 +16627,8 @@
       ],
       "metadata": {
         "sourceSet": "microsoft/azure-devops-copilot-plugin",
-        "repoPath": ".claude-plugin/plugin.json"
+        "repoPath": ".claude-plugin/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/microsoft/azure-devops.png"
       },
       "type": "application/vnd.anthropic.claude-plugin+json"
     },
@@ -17240,7 +17246,8 @@
       ],
       "metadata": {
         "sourceSet": "microsoft/azure-skills",
-        "repoPath": ".github/plugins/azure-skills/.plugin/plugin.json"
+        "repoPath": ".github/plugins/azure-skills/.plugin/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/microsoft/azure.png"
       },
       "type": "application/vnd.github.copilot-plugin"
     },
@@ -18085,7 +18092,8 @@
       ],
       "metadata": {
         "sourceSet": "microsoft/foundry-dev-tools",
-        "repoPath": "microsoft-foundry/plugin.json"
+        "repoPath": "microsoft-foundry/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/microsoft/microsoft-foundry.png"
       },
       "type": "application/vnd.github.copilot-plugin"
     },
@@ -18481,7 +18489,8 @@
       "description": "Query Microsoft 365 data with natural language - emails, meetings, documents, Teams messages, and more.",
       "metadata": {
         "sourceSet": "microsoft/work-iq",
-        "repoPath": "plugins/workiq/.github/plugin/plugin.json"
+        "repoPath": "plugins/workiq/.github/plugin/plugin.json",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/microsoft/workiq.png"
       },
       "type": "application/vnd.github.copilot-plugin"
     },
@@ -19769,7 +19778,8 @@
       ],
       "metadata": {
         "sourceSet": "pbakaus/impeccable",
-        "repoPath": "plugin/skills/impeccable/SKILL.md"
+        "repoPath": "plugin/skills/impeccable/SKILL.md",
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/pbakaus/impeccable.png"
       },
       "type": "application/ai-skill"
     },
@@ -24291,7 +24301,8 @@
         "readmeUrl": "https://github.com/figma/mcp-server-guide#readme",
         "repository": "https://github.com/figma/mcp-server-guide",
         "repositorySource": "github",
-        "stargazerCount": 2070
+        "stargazerCount": 2070,
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/figma/figma.png"
       }
     },
     {
@@ -31922,7 +31933,8 @@
         "readmeUrl": "https://github.com/microsoft/azure-devops-mcp#readme",
         "repository": "https://github.com/microsoft/azure-devops-mcp",
         "repositorySource": "github",
-        "stargazerCount": 2054
+        "stargazerCount": 2054,
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/microsoft/azure-devops.png"
       }
     },
     {
@@ -32018,7 +32030,8 @@
         "readmeUrl": "https://github.com/microsoft/playwright-mcp#readme",
         "repository": "https://github.com/microsoft/playwright-mcp",
         "repositorySource": "github",
-        "stargazerCount": 38104
+        "stargazerCount": 38104,
+        "com.github.agentfinder.icon.url": "https://raw.githubusercontent.com/github/agentfinder-catalog/08dc319501a58ca849999e2b7cc1d34225e13d3a/icons/microsoft/playwright.png"
       }
     },
     {
