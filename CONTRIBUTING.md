@@ -90,8 +90,9 @@ descriptor or create another resource entry to attach an icon. Use the exact
 generated `urn:air:` identifier from `ai-catalog.json`, not the source `urn:ai:`
 identifier, a display name, or a descriptor URL.
 
-The tooling-only overlay is empty; artwork and production declarations are
-reviewed in a separate change.
+The tooling-only change does not add an overlay file; create it when adding the
+first approved declarations. Artwork and production declarations are reviewed
+in a separate change.
 The following is a **synthetic example**, not an available asset, real digest,
 or evidence of permission:
 
