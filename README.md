@@ -36,8 +36,9 @@ The Catalog workflow checks the [GitHub MCP Registry](https://api.mcp.github.com
 ## Optional reviewed icons
 
 `catalog-icons.json` is an identity-keyed overlay for both local and
-registry-imported resources. This tooling-only change leaves it empty; artwork
-and production declarations are reviewed separately.
+registry-imported resources. This tooling-only change does not add the file;
+artwork and production declarations are reviewed separately. A missing file
+means no curated icons.
 Declarations use the existing generated `urn:air:` identifier
 and optional exact version, without duplicating resources or changing descriptor
 URLs. Generation adds only the scalar `metadata["com.github.agentfinder.icon.url"]`;
