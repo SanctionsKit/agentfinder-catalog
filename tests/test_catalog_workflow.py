@@ -19,8 +19,12 @@ class CatalogWorkflowTest(unittest.TestCase):
         self.assertIn("  workflow_dispatch:\n", WORKFLOW)
         self.assertIn("  push:\n    branches:\n      - main\n", WORKFLOW)
         self.assertIn("  pull_request:\n    paths:\n", WORKFLOW)
-        for path in ("catalog-icons.json", "icons/**", "CONTRIBUTING.md", "README.md"):
+        for path in ("catalog-icons.json", "icons/**", "CONTRIBUTING.md", "README.md", "requirements.txt"):
             self.assertIn(f'      - "{path}"\n', WORKFLOW)
+        self.assertLess(
+            WORKFLOW.index("python3 -m pip install -r requirements.txt"),
+            WORKFLOW.index("python3 -m unittest discover -s tests"),
+        )
         self.assertIn(
             "        if: (github.event_name == 'push' || "
             "github.event_name == 'schedule' || "

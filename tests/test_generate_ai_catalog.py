@@ -1,4 +1,5 @@
 import hashlib
+import io
 import json
 import re
 import struct
@@ -8,6 +9,8 @@ import zlib
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
+
+from PIL import Image
 
 from scripts import generate_ai_catalog
 
@@ -306,17 +309,12 @@ class CatalogIconsTest(unittest.TestCase):
 
     def test_asset_size_dimensions_and_png_integrity(self):
         for content, message in (
-            (b"not a PNG", "missing signature"),
-            (self.png(0, 1), "dimensions"), (self.png(513, 1), "dimensions"),
+            (b"not a PNG", "invalid PNG"),
+            (self.png(0, 1), "invalid PNG"), (self.png(513, 1), "dimensions"),
             (self.png(1, 513), "dimensions"),
-            (self.png()[:30], "truncated chunk"),
-            (self.png()[:-12], "missing IEND"),
-            (self.png() + b"trailing", "trailing bytes"),
-            (self.png().replace(b"IDAT", b"JDAT"), "checksum mismatch"),
-            (self.png()[:-12] + self.chunk(b"IDAT", b"invalid") + self.chunk(b"IEND", b""),
-             "compressed image data"),
-            (self.png()[:-12] + self.chunk(b"acTL", b"\0" * 8) + self.chunk(b"IEND", b""),
-             "animated"),
+            (self.png()[:30], "invalid PNG"),
+            (self.png()[:-12], "invalid PNG"),
+            (self.png().replace(b"IDAT", b"JDAT"), "invalid PNG"),
             (self.png() + b"\0" * generate_ai_catalog.MAX_ICON_BYTES, "exceeds"),
         ):
             with self.subTest(message=message):
@@ -351,40 +349,38 @@ class CatalogIconsTest(unittest.TestCase):
             self.asset.write_bytes(signature + b"".join(chunks))
             self.write_overlay(self.declaration())
             self.generate()
-        for chunks in (
-            [indexed, data, end],
-            [indexed, self.chunk(b"PLTE", b"\0"), data, end],
-            [indexed, palette, palette, data, end],
-            [indexed, data, palette, end],
-            [indexed, self.chunk(b"PLTE", b"\0" * 9), data, end],
-        ):
-            with self.subTest(chunks=chunks):
-                self.asset.write_bytes(signature + b"".join(chunks))
-                self.write_overlay(self.declaration())
-                with self.assertRaisesRegex(SystemExit, "palette"):
-                    self.generate()
 
-    def test_png_bounded_decompression_filters_and_required_chunks(self):
+    def test_png_decode_errors_are_rejected(self):
         header = self.chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0))
         signature = b"\x89PNG\r\n\x1a\n"
         end = self.chunk(b"IEND", b"")
         for chunks in (
-            [header, self.chunk(b"IDAT", zlib.compress(b"x" * 100_000)), end],
             [header, self.chunk(b"IDAT", zlib.compress(b"\x05" + b"\0" * 4)), end],
-            [header, self.chunk(b"IDAT", zlib.compress(b"\0" * 5) + b"extra"), end],
-            [header, self.chunk(b"IDAT", zlib.compress(b"\0" * 5)[:-1]), end],
-            [header, header, self.chunk(b"IDAT", zlib.compress(b"\0" * 5)), end],
+            [header, self.chunk(b"IDAT", b"not compressed image data"), end],
             [header, end],
             [self.chunk(b"IDAT", zlib.compress(b"\0" * 5)), header, end],
-            [header, self.chunk(b"TEST", b""), end],
-            [header, self.chunk(b"IDAT", b""), self.chunk(b"tEXt", b"test\0value"),
-             self.chunk(b"IDAT", zlib.compress(b"\0" * 5)), end],
         ):
             with self.subTest(chunks=chunks):
                 self.asset.write_bytes(signature + b"".join(chunks))
                 self.write_overlay(self.declaration())
                 with self.assertRaisesRegex(SystemExit, "invalid PNG"):
                     self.generate()
+
+    def test_animation_and_other_formats_are_rejected(self):
+        first = Image.new("RGBA", (2, 2), "red")
+        second = Image.new("RGBA", (2, 2), "blue")
+        animated = io.BytesIO()
+        first.save(animated, format="PNG", save_all=True, append_images=[second])
+        gif = io.BytesIO()
+        first.save(gif, format="GIF")
+        for content, message in (
+            (animated.getvalue(), "animated PNG"),
+            (gif.getvalue(), "invalid PNG"),
+        ):
+            self.asset.write_bytes(content)
+            self.write_overlay(self.declaration())
+            with self.assertRaisesRegex(SystemExit, message):
+                self.generate()
 
     def test_reserved_key_cannot_bypass_overlay_review(self):
         self.local["metadata"][generate_ai_catalog.ICON_METADATA_KEY] = self.URL
@@ -901,33 +897,6 @@ class ValidateEntryTest(unittest.TestCase):
                         }
                     ],
                 )
-
-    def test_featured_declarations_match_shipped_catalog_and_assets(self):
-        declarations = generate_ai_catalog.load_icon_declarations()
-        self.assertEqual(len(declarations), 13)
-        document = json.loads(generate_ai_catalog.OUTPUT.read_bytes())
-        entries = document["entries"]
-        baseline = json.loads(json.dumps(entries))
-        key = generate_ai_catalog.ICON_METADATA_KEY
-        for entry in baseline:
-            if isinstance(entry.get("metadata"), dict):
-                entry["metadata"].pop(key, None)
-        generate_ai_catalog.apply_icon_declarations(baseline, declarations)
-        self.assertEqual(baseline, entries)
-        decorated = {entry["identifier"]: entry for entry in entries if key in entry.get("metadata", {})}
-        self.assertEqual(set(decorated), {item["identifier"] for item in declarations})
-        self.assertNotIn(
-            "urn:air:github.com:vercel-labs:agent-skills:web-design-guidelines",
-            decorated,
-        )
-        self.assertEqual(
-            decorated["urn:air:github.com:mattpocock:skills:grill-me"]["type"],
-            "application/ai-skill",
-        )
-        self.assertNotIn(
-            "urn:air:registry.modelcontextprotocol.io:com.microsoft:powerbi-modeling-mcp",
-            decorated,
-        )
 
     def test_generated_canvas_only_filter_shape(self):
         with tempfile.TemporaryDirectory() as directory:

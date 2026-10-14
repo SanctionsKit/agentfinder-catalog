@@ -2,14 +2,15 @@
 
 import argparse
 import hashlib
+import io
 import json
 import re
-import struct
-import zlib
 from pathlib import Path, PurePosixPath
 from urllib.error import URLError
 from urllib.parse import unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
+
+from PIL import Image, UnidentifiedImageError
 
 SCRIPT = Path(__file__).resolve()
 ROOT = SCRIPT.parents[1]
@@ -37,109 +38,21 @@ ICON_PATH_PATTERN = re.compile(
 
 
 def validate_png(content, source):
-    def invalid(reason):
-        fail(f"{source}: invalid PNG: {reason}")
-
-    if not content.startswith(b"\x89PNG\r\n\x1a\n"):
-        invalid("missing signature")
-    offset = 8
-    header = None
-    palette = None
-    compressed = bytearray()
-    saw_data = False
-    ended_data = False
-    while offset < len(content):
-        if len(content) - offset < 12:
-            invalid("truncated chunk")
-        length, kind = struct.unpack_from(">I4s", content, offset)
-        end = offset + 12 + length
-        if end > len(content):
-            invalid("truncated chunk")
-        payload = content[offset + 8 : end - 4]
-        checksum = struct.unpack_from(">I", content, end - 4)[0]
-        if zlib.crc32(kind + payload) != checksum:
-            invalid("chunk checksum mismatch")
-        if not re.fullmatch(b"[A-Za-z]{4}", kind) or not 65 <= kind[2] <= 90:
-            invalid("invalid chunk type")
-        if header is None and kind != b"IHDR":
-            invalid("IHDR must be first")
-        if kind == b"IHDR":
-            if header is not None or length != 13:
-                invalid("invalid or duplicate IHDR")
-            header = struct.unpack(">IIBBBBB", payload)
-            width, height, depth, color, compression, filtering, interlace = header
-            if not (
-                1 <= width <= MAX_ICON_DIMENSION
-                and 1 <= height <= MAX_ICON_DIMENSION
-            ):
-                invalid(f"dimensions must be between 1 and {MAX_ICON_DIMENSION}")
-            depths = {
-                0: (1, 2, 4, 8, 16), 2: (8, 16), 3: (1, 2, 4, 8),
-                4: (8, 16), 6: (8, 16),
-            }
-            if (
-                depth not in depths.get(color, ())
-                or compression != 0
-                or filtering != 0
-                or interlace not in (0, 1)
-            ):
-                invalid("unsupported IHDR fields")
-        elif kind == b"PLTE":
-            if (
-                palette is not None or saw_data or not length or length % 3
-                or length > 768 or header[3] in (0, 4)
-                or (header[3] == 3 and length // 3 > 2 ** header[2])
-            ):
-                invalid("invalid palette")
-            palette = payload
-        elif kind == b"IDAT":
-            if ended_data or (header[3] == 3 and palette is None):
-                invalid("invalid IDAT order or missing palette")
-            saw_data = True
-            compressed.extend(payload)
-        elif kind == b"IEND":
-            if length or not saw_data or end != len(content):
-                invalid("invalid IEND or trailing bytes")
-            break
-        elif not kind[0] & 32:
-            invalid("unknown critical chunk")
-        elif kind in (b"acTL", b"fcTL", b"fdAT"):
-            invalid("animated PNGs are not supported")
-        if saw_data and kind != b"IDAT":
-            ended_data = True
-        offset = end
-    else:
-        invalid("missing IEND")
-
-    width, height, depth, color, _, _, interlace = header
-    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[color]
-    passes = (
-        ((0, 0, 8, 8), (4, 0, 8, 8), (0, 4, 4, 8), (2, 0, 4, 4),
-         (0, 2, 2, 4), (1, 0, 2, 2), (0, 1, 1, 2))
-        if interlace else ((0, 0, 1, 1),)
-    )
-    rows = []
-    for x, y, dx, dy in passes:
-        columns = max(0, (width - x + dx - 1) // dx)
-        count = max(0, (height - y + dy - 1) // dy)
-        if columns and count:
-            rows.extend([1 + (columns * channels * depth + 7) // 8] * count)
-    expected = sum(rows)
+    if len(content) > MAX_ICON_BYTES:
+        fail(f"{source}: asset exceeds {MAX_ICON_BYTES} bytes")
     try:
-        decoder = zlib.decompressobj()
-        pixels = decoder.decompress(compressed, expected + 1)
-    except zlib.error as error:
-        invalid(f"invalid compressed image data: {error}")
-    if (
-        len(pixels) != expected or not decoder.eof
-        or decoder.unused_data or decoder.unconsumed_tail
-    ):
-        invalid("compressed image data does not match dimensions")
-    offset = 0
-    for length in rows:
-        if pixels[offset] > 4:
-            invalid("invalid scanline filter")
-        offset += length
+        with Image.open(io.BytesIO(content), formats=["PNG"]) as image:
+            if not all(1 <= dimension <= MAX_ICON_DIMENSION for dimension in image.size):
+                fail(f"{source}: PNG dimensions must be between 1 and {MAX_ICON_DIMENSION}")
+            image.verify()
+        # Verification checks file integrity; reopening also exercises actual decoding.
+        with Image.open(io.BytesIO(content), formats=["PNG"]) as image:
+            if getattr(image, "is_animated", False):
+                fail(f"{source}: animated PNGs are not supported")
+            image.load()
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError, IndexError,
+            Image.DecompressionBombError) as error:
+        fail(f"{source}: invalid PNG: {error}")
 
 
 def validate_icon_url(value, source):

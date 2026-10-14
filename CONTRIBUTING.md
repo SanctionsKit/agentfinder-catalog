@@ -90,8 +90,8 @@ descriptor or create another resource entry to attach an icon. Use the exact
 generated `urn:air:` identifier from `ai-catalog.json`, not the source `urn:ai:`
 identifier, a display name, or a descriptor URL.
 
-The overlay includes approved artwork reused from the featured app resources.
-Asset hosting remains public here; the source app repository remains private.
+The tooling-only overlay is empty; artwork and production declarations are
+reviewed in a separate change.
 The following is a **synthetic example**, not an available asset, real digest,
 or evidence of permission:
 
@@ -160,10 +160,11 @@ or an image cannot be loaded.
   names start with an ASCII letter, digit, underscore, or hyphen; remaining
   characters may also include dots. Asset paths cannot contain symlinks.
 - Use **static PNG** files, at most **256 KiB (262144 bytes)**, with width and
-  height between **1 and 512 pixels**. Checks cover the PNG signature, chunk
-  structure/checksums, header, palette requirements, bounded compressed scanline
-  lengths, and filter values. These checks are not full image sanitization;
-  reviewers must also inspect the rendered image.
+  height between **1 and 512 pixels**. Pillow verifies PNG integrity and decodes
+  the image; animated images are rejected. Validation follows Pillow's PNG
+  decoder rather than implementing a separate strict chunk grammar (for example,
+  it does not reject otherwise decodable PNGs solely for trailing bytes).
+  These checks are not image sanitization; reviewers must inspect the rendered image.
 - URLs must use HTTPS and the exact `raw.githubusercontent.com` host, this
   repository, a full lowercase 40-hex commit reference, and the asset path.
   Mutable refs, credentials, explicit ports, query strings, fragments, encoded
@@ -224,18 +225,6 @@ github/agentfinder#557 foundation and github/copilot-ecosystem#1625 service
 support**, plus verified redistribution permission. Catalog tooling alone is
 not end-to-end icon delivery.
 
-The current featured declarations include the explicitly approved icon assets
-and, where no icon is supplied, the Figma, Impeccable, and Microsoft Foundry cover
-images. SVG sources were rasterized to PNG and images resized without cropping
-to satisfy the limits. The same Azure DevOps artwork serves its MCP and canvas
-resources; the Grill Me artwork serves the two skill names in its featured
-installation bundle. Power BI remains without a declaration because the featured
-list supplies no artwork. No app code or repository visibility changes are needed.
-Source links identify the supplied pinned app asset and may require repository
-access; they are provenance references, not client image delivery URLs.
-The Web Design Guidelines artwork is included, but its declaration is deferred
-until the separately proposed skill entry is available in the catalog.
-
 The current ARD specification is
 [v0.91 (Proposal)](https://github.com/ards-project/ard-spec/blob/49eb4df6f3841ccecc5c31d5175117337b568bdf/spec/ard.md);
 the catalog envelope remains `specVersion: "1.0"`. Both current entry and catalog
@@ -269,6 +258,7 @@ Make sure your file is valid JSON, then regenerate and check the ARD ingestion c
 
 ```bash
 python -m json.tool catalog/<your-publisher>/<augment-name>.json
+python3 -m pip install -r requirements.txt
 python3 scripts/generate_ai_catalog.py
 python3 scripts/generate_ai_catalog.py --check
 ```
